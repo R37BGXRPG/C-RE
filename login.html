@@ -6,7 +6,7 @@
   <title>C☍RS — Login</title>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
-  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
   <style>
     body {
       background: #0f0f0f;
@@ -17,30 +17,33 @@
       justify-content: center;
       height: 100vh;
     }
+
     .login-container {
       background: #151515;
       padding: 2rem;
       border-radius: 1rem;
-      box-shadow: 0 0 25px rgba(162, 89, 255, 0.2);
       text-align: center;
       width: 90%;
       max-width: 400px;
     }
-    .login-container h1 {
-      margin-bottom: 1rem;
-      color: #a259ff;
-    }
+
     .google-btn {
-      padding: 0.8rem 1.2rem;
       background: #fff;
       color: #000;
       border: none;
-      border-radius: 0.5rem;
+      padding: 0.8rem 1.2rem;
       font-weight: bold;
+      border-radius: 0.5rem;
       cursor: pointer;
     }
+
     .google-btn:hover {
       background: #e4e4e4;
+    }
+
+    h1 {
+      color: #a259ff;
+      margin-bottom: 1.5rem;
     }
   </style>
 </head>
@@ -53,29 +56,46 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
       authDomain: "core-d4ca4.firebaseapp.com",
-      projectId: "core-d4ca4",
-      appId: "1:509237418993:web:031b66f3b8967aaa714250"
+      projectId: "core-d4ca4"
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    const auth = getAuth();
+    const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    document.getElementById('sign-in-btn').onclick = async () => {
+    document.getElementById("sign-in-btn").onclick = async () => {
       try {
-        await signInWithPopup(auth, provider);
-        window.location.href = "index.html"; // redirect after login
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // 🔥 Save user to Firestore if not already present
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            uid: user.uid,
+            username: user.displayName || "Unknown",
+            email: user.email || "unknown@email.com",
+            photoURL: user.photoURL || "",
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        window.location.href = "index.html";
       } catch (error) {
-        alert("Sign-in failed: " + error.message);
+        alert("Login failed: " + error.message);
         console.error(error);
       }
     };
 
+    // Auto-redirect if already logged in
     onAuthStateChanged(auth, (user) => {
       if (user) window.location.href = "index.html";
     });
