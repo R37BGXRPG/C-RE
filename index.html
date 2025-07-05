@@ -31,18 +31,29 @@
     .user-item {
       background: #1a1a1a;
       border-radius: 0.5rem;
-      padding: 1rem;
+      padding: 0.8rem 1rem;
       cursor: pointer;
       transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
     .user-item:hover {
       background: #292929;
     }
 
-    .user-meta {
-      font-size: 0.9rem;
-      color: #aaa;
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #444;
+    }
+
+    .user-name {
+      font-size: 1.1rem;
+      font-weight: 500;
     }
 
     #logout {
@@ -106,17 +117,25 @@
 
         snapshot.forEach((doc) => {
           const u = doc.data();
-          if (u.uid === user.uid) return; // skip current user
+          if (u.uid === user.uid) return;
 
           const div = document.createElement("div");
           div.classList.add("user-item");
-          div.innerHTML = `
-            <strong>${u.username}</strong><br />
-            <div class="user-meta">${u.email}</div>
-          `;
           div.onclick = () => {
             window.location.href = `chat.html?uid=${u.uid}`;
           };
+
+          const avatar = document.createElement("img");
+          avatar.className = "user-avatar";
+          avatar.src = u.photoURL || "https://via.placeholder.com/48";
+          avatar.alt = u.username;
+
+          const name = document.createElement("div");
+          name.className = "user-name";
+          name.textContent = u.username || "Unnamed";
+
+          div.appendChild(avatar);
+          div.appendChild(name);
           userListEl.appendChild(div);
         });
 
