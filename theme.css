@@ -1,0 +1,26 @@
+:root {
+  --bg: #0f0f0f;
+  --box-bg: #151515;
+  --input-bg: #232323;
+  --text: #fff;
+  --accent: #a259ff;
+}
+[data-theme="light"] {
+  --bg: #f4f4f4;
+  --box-bg: #fff;
+  --input-bg: #e4e4e4;
+  --text: #222;
+  --accent: #a259ff;
+}
+[data-theme="purple"] {
+  --bg: #2d0036;
+  --box-bg: #3d0050;
+  --input-bg: #5e1a7a;
+  --text: #fff;
+  --accent: #e259ff;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+}
