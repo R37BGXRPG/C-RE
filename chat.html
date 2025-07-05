@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Interface</title>
+  <style>
+    /* Existing styles... */
+    .message {
+      display: flex;
+      margin-bottom: 1rem;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .message.sent {
+      flex-direction: row-reverse;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <!-- Full chat UI remains unchanged -->
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      collection,
+      addDoc,
+      serverTimestamp,
+      query,
+      orderBy,
+      onSnapshot,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
+      authDomain: "core-d4ca4.firebaseapp.com",
+      projectId: "core-d4ca4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUid = urlParams.get("uid");
+
+    let currentUser;
+    let chatUI;
+    let dmId;
+    let targetPhotoURL = "";
+    let hideTypingTimeout;
+    let lastSender = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || !targetUid) return (window.location.href = "login.html");
+
+      currentUser = user;
+      chatUI = new ChatUI();
+
+      const sortedUIDs = [currentUser.uid, targetUid].sort();
+      dmId = `${sortedUIDs[0]}_${sortedUIDs[1]}`;
+
+      const targetDoc = await getDoc(doc(db, "users", targetUid));
+      if (targetDoc.exists()) {
+        const u = targetDoc.data();
+        chatUI.updateChatUser(u.username || "Unknown", u.photoURL || "");
+        targetPhotoURL = u.photoURL || "";
+      }
+
+      const messagesRef = collection(db, `dms/${dmId}/messages`);
+      const q = query(messagesRef, orderBy("timestamp"));
+      onSnapshot(q, (snapshot) => {
+        chatUI.clearMessages();
+        lastSender = null;
+        snapshot.forEach((doc) => {
+          const msg = doc.data();
+          const isSender = msg.sender === currentUser.uid;
+          const type = isSender ? "sent" : "received";
+          const showAvatar = lastSender !== msg.sender;
+          chatUI.addMessage(msg.text, type, new Date(msg.timestamp?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), showAvatar ? (isSender ? currentUser.photoURL : targetPhotoURL) : null);
+          lastSender = msg.sender;
+        });
+      });
+
+      document.getElementById("message-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("message-input");
+        const text = input.value.trim();
+        if (!text) return;
+        await addDoc(messagesRef, {
+          text,
+          sender: currentUser.uid,
+          timestamp: serverTimestamp()
+        });
+        input.value = "";
+        input.style.height = 'auto';
+      });
+
+      // Typing status sync
+      const typingInput = document.getElementById("message-input");
+      let typingDebounce;
+
+      typingInput.addEventListener("input", () => {
+        clearTimeout(typingDebounce);
+        setDoc(doc(db, `dms/${dmId}/typing/${currentUser.uid}`), {
+          isTyping: true,
+          name: currentUser.displayName,
+          timestamp: Date.now()
+        });
+        typingDebounce = setTimeout(() => {
+          setDoc(doc(db, `dms/${dmId}/typing/${currentUser.uid}`), { isTyping: false });
+        }, 3000);
+      });
+
+      const typingTargetRef = doc(db, `dms/${dmId}/typing/${targetUid}`);
+      onSnapshot(typingTargetRef, (snap) => {
+        const data = snap.data();
+        if (data?.isTyping) {
+          chatUI.showTypingIndicator(data.name);
+          clearTimeout(hideTypingTimeout);
+          hideTypingTimeout = setTimeout(() => chatUI.hideTypingIndicator(), 3000);
+        } else {
+          chatUI.hideTypingIndicator();
+        }
+      });
+    });
+
+    // Patch ChatUI method for avatars
+    class ChatUI {
+      constructor() {
+        this.messageInput = document.getElementById('message-input');
+        this.sendButton = document.getElementById('send-button');
+        this.messageForm = document.getElementById('message-form');
+        this.messagesContainer = document.getElementById('messages-container');
+        this.typingIndicator = document.getElementById('typing-indicator');
+        this.initEventListeners();
+      }
+
+      initEventListeners() {
+        this.messageForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.handleSendMessage();
+        });
+
+        this.messageInput.addEventListener('input', (e) => {
+          this.autoResize(e.target);
+          this.toggleSendButton();
+        });
+
+        this.messageInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.handleSendMessage();
+          }
+        });
+
+        this.observeMessages();
+      }
+
+      handleSendMessage() {
+        const message = this.messageInput.value.trim();
+        if (!message) return;
+        this.messageInput.value = '';
+        this.messageInput.style.height = 'auto';
+        this.toggleSendButton();
+        this.messageInput.focus();
+      }
+
+      addMessage(text, type = 'sent', timestamp = null, avatarURL = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        const currentTime = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageDiv.innerHTML = `${avatarURL ? `<div class="avatar" style="background-image: url('${avatarURL}')"></div>` : '<div style="width: 32px;"></div>'}
+          <div class="message-bubble">
+            <div class="message-text">${this.escapeHtml(text)}</div>
+            <div class="message-time">${currentTime}</div>
+          </div>`;
+        this.messagesContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      scrollToBottom() {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      }
+
+      observeMessages() {
+        const observer = new MutationObserver(() => {
+          this.scrollToBottom();
+        });
+        observer.observe(this.messagesContainer, { childList: true, subtree: true });
+      }
+
+      showTypingIndicator(username) {
+        document.getElementById('typing-user').textContent = username;
+        this.typingIndicator.classList.add('show');
+        this.scrollToBottom();
+      }
+
+      hideTypingIndicator() {
+        this.typingIndicator.classList.remove('show');
+      }
+
+      updateChatUser(username, profilePicUrl = null) {
+        document.getElementById('chat-username').textContent = username;
+        if (profilePicUrl) {
+          const profilePic = document.getElementById('profile-pic');
+          profilePic.style.backgroundImage = `url('${profilePicUrl}')`;
+        }
+      }
+
+      clearMessages() {
+        this.messagesContainer.innerHTML = '';
+      }
+
+      autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+      }
+
+      toggleSendButton() {
+        const hasText = this.messageInput.value.trim().length > 0;
+        this.sendButton.disabled = !hasText;
+      }
+    }
+  </script></body>
+</html>
