@@ -1,5 +1,5 @@
 # C☍RE
-# C☍RE l☍RE
+# C☍RE L☍RE
 As they say, "New Beginnings are hidden as awful old endings". Tjhis is what its about. C☍RE (core) is a new form for our old msging app "Chatz". Now our team messed it up. It is very painful to fix. So we started a new project. Yes this is it. C☍RE or Core, marks it beggining on 5th July, 2025. Now hopefully we dont mess this up and you all can enjoy.
 
 # C☍RE VERSI☍NS
