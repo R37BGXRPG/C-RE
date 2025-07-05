@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>C☍RS Chat</title>
@@ -128,90 +127,103 @@
       <textarea id="msg-input" rows="1" placeholder="Say something..."></textarea>
       <button type="submit">➤</button>
     </form>
-  </div>  <script type="module">
+  </div>
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";const firebaseConfig = {
+  apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
+  authDomain: "core-d4ca4.firebaseapp.com",
+  databaseURL: "https://core-d4ca4-default-rtdb.firebaseio.com",
+  projectId: "core-d4ca4",
+  storageBucket: "core-d4ca4.appspot.com",
+  messagingSenderId: "509237418993",
+  appId: "1:509237418993:web:031b66f3b8967aaa714250",
+  measurementId: "G-35J082BKEV"
+};
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
-      authDomain: "core-d4ca4.firebaseapp.com",
-      databaseURL: "https://core-d4ca4-default-rtdb.firebaseio.com",
-      projectId: "core-d4ca4",
-      storageBucket: "core-d4ca4.appspot.com",
-      messagingSenderId: "509237418993",
-      appId: "1:509237418993:web:031b66f3b8967aaa714250",
-      measurementId: "G-35J082BKEV"
-    };
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth();
+const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const auth = getAuth();
-    const db = getFirestore(app);
+const messagesDiv = document.getElementById('messages');
+const form = document.getElementById('chat-form');
+const input = document.getElementById('msg-input');
+const params = new URLSearchParams(location.search);
+const targetUid = params.get('uid');
 
-    const messagesDiv = document.getElementById('messages');
-    const form = document.getElementById('chat-form');
-    const input = document.getElementById('msg-input');
-    const params = new URLSearchParams(location.search);
-    const targetUid = params.get('uid');
+let currentUser = null;
 
-    let currentUser = null;
+function getChatId(uid1, uid2) {
+  return [uid1, uid2].sort().join('_');
+}
 
-    function getChatId(uid1, uid2) {
-      return [uid1, uid2].sort().join('_');
-    }
+async function setupTargetUser(uid) {
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (!userDoc.exists()) {
+    alert("User not found");
+    throw new Error("Target user not found");
+  }
+  const targetUser = userDoc.data();
+  document.getElementById('user-name').textContent = targetUser.displayName;
+  document.getElementById('user-pfp').style.backgroundImage = `url('${targetUser.photoURL}')`;
+  return targetUser;
+}
 
-    function renderMessage(msg, isSender) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `message ${isSender ? 'sent' : 'received'}`;
-      msgDiv.innerHTML = `
-        <div class="pfp" style="background-image: url('${msg.photoURL || ''}')"></div>
-        <div class="message-bubble">
-          <div>${msg.text}</div>
-          <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-        </div>
-      `;
-      messagesDiv.appendChild(msgDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+function renderMessage(msg, isSender) {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${isSender ? 'sent' : 'received'}`;
+  msgDiv.innerHTML = `
+    <div class="pfp" style="background-image: url('${msg.photoURL || ''}')"></div>
+    <div class="message-bubble">
+      <div>${msg.text}</div>
+      <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+    </div>
+  `;
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user || !targetUid) return location.href = 'login.html';
-      currentUser = user;
-      document.getElementById('user-name').textContent = user.displayName;
-      document.getElementById('user-pfp').style.backgroundImage = `url('${user.photoURL}')`;
+onAuthStateChanged(auth, async (user) => {
+  if (!user || !targetUid) return location.href = 'login.html';
+  currentUser = user;
 
-      const chatId = getChatId(currentUser.uid, targetUid);
-      const messagesRef = collection(db, `chats/${chatId}/messages`);
-      const q = query(messagesRef, orderBy('timestamp'));
+  const targetUser = await setupTargetUser(targetUid);
 
-      onSnapshot(q, (snapshot) => {
-        messagesDiv.innerHTML = '';
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          renderMessage(data, data.uid === currentUser.uid);
-        });
-      });
+  const chatId = getChatId(currentUser.uid, targetUid);
+  const messagesRef = collection(db, `chats/${chatId}/messages`);
+  const q = query(messagesRef, orderBy('timestamp'));
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = input.value.trim();
-        if (!text) return;
-        await addDoc(messagesRef, {
-          text,
-          uid: currentUser.uid,
-          photoURL: currentUser.photoURL,
-          timestamp: serverTimestamp()
-        });
-        input.value = '';
-        input.style.height = 'auto';
-      });
+  onSnapshot(q, (snapshot) => {
+    messagesDiv.innerHTML = '';
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      renderMessage(data, data.uid === currentUser.uid);
     });
+  });
 
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    await addDoc(messagesRef, {
+      text,
+      uid: currentUser.uid,
+      photoURL: currentUser.photoURL,
+      timestamp: serverTimestamp()
     });
-  </script></body>
+    input.value = '';
+    input.style.height = 'auto';
+  });
+});
+
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+  </script>
+</body>
 </html>
