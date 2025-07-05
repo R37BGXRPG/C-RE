@@ -132,7 +132,7 @@
       authDomain: "core-d4ca4.firebaseapp.com",
       databaseURL: "https://core-d4ca4-default-rtdb.firebaseio.com",
       projectId: "core-d4ca4",
-      storageBucket: "core-d4ca4.firebasestorage.app",
+      storageBucket: "core-d4ca4.appspot.com",
       messagingSenderId: "509237418993",
       appId: "1:509237418993:web:031b66f3b8967aaa714250",
       measurementId: "G-35J082BKEV"
@@ -159,7 +159,7 @@
         <div class="pfp" style="background-image: url('${msg.photoURL}')"></div>
         <div class="message-bubble">
           <div>${msg.text}</div>
-          <div class="message-time">${new Date(msg.timestamp?.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
         </div>
       `;
       messagesDiv.appendChild(msgDiv);
@@ -179,19 +179,19 @@
           renderMessage(data, data.uid === user.uid);
         });
       });
-    });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = input.value.trim();
-      if (!text || !currentUser) return;
-      await addDoc(messagesRef, {
-        text,
-        uid: currentUser.uid,
-        photoURL: currentUser.photoURL,
-        timestamp: serverTimestamp()
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        await addDoc(messagesRef, {
+          text,
+          uid: currentUser.uid,
+          photoURL: currentUser.photoURL,
+          timestamp: serverTimestamp()
+        });
+        input.value = '';
       });
-      input.value = '';
     });
   </script>
 </body>
