@@ -132,7 +132,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
@@ -151,7 +151,7 @@
     const db = getFirestore(app);
 
     const urlParams = new URLSearchParams(window.location.search);
-    const targetUid = urlParams.get('uid');
+    const targetUID = urlParams.get('uid');
 
     const messagesRef = collection(db, 'global-messages');
     const q = query(messagesRef, orderBy('timestamp'));
@@ -177,7 +177,7 @@
     }
 
     onAuthStateChanged(auth, (user) => {
-      if (!user) return location.href = 'login.html';
+      if (!user || !targetUID) return location.href = 'login.html';
       currentUser = user;
       document.getElementById('user-name').textContent = user.displayName;
       document.getElementById('user-pfp').style.backgroundImage = `url('${user.photoURL}')`;
@@ -186,11 +186,11 @@
         messagesDiv.innerHTML = '';
         snapshot.forEach((doc) => {
           const data = doc.data();
-          if (
-            (data.sender === currentUser.uid && data.receiver === targetUid) ||
-            (data.sender === targetUid && data.receiver === currentUser.uid)
-          ) {
-            renderMessage(data, data.sender === currentUser.uid);
+          const isBetweenUsers =
+            (data.uid === currentUser.uid && data.to === targetUID) ||
+            (data.uid === targetUID && data.to === currentUser.uid);
+          if (isBetweenUsers) {
+            renderMessage(data, data.uid === currentUser.uid);
           }
         });
       });
@@ -201,8 +201,8 @@
         if (!text) return;
         await addDoc(messagesRef, {
           text,
-          sender: currentUser.uid,
-          receiver: targetUid,
+          uid: currentUser.uid,
+          to: targetUID,
           photoURL: currentUser.photoURL,
           timestamp: serverTimestamp()
         });
