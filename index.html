@@ -56,7 +56,7 @@
       font-weight: 500;
     }
 
-    #logout {
+    #settings {
       background: #a259ff;
       color: #fff;
       border: none;
@@ -78,14 +78,14 @@
   </style>
 </head>
 <body>
-  <button id="logout">Logout</button>
+  <button id="settings">Settings</button>
   <h1>C☍RS — All Users</h1>
   <div id="current-user"></div>
   <div id="user-list"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
     import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -145,9 +145,8 @@
       });
     });
 
-    document.getElementById("logout").onclick = async () => {
-      await signOut(auth);
-      window.location.href = "login.html";
+    document.getElementById("settings").onclick = () => {
+      window.location.href = "settings.html";
     };
   </script>
 </body>
