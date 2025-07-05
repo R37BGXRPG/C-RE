@@ -6,13 +6,13 @@
   <title>C☍RS Chat</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0d1117; color: #f0f6fc; font-family: 'Segoe UI', sans-serif; }
+    body, html { height: 100%; overflow: hidden; background: #0d1117; color: #f0f6fc; font-family: 'Segoe UI', sans-serif; }
     .chat-container {
-      max-width: 800px;
-      margin: auto;
-      height: 100vh;
       display: flex;
       flex-direction: column;
+      height: 100%;
+      max-width: 800px;
+      margin: auto;
       border: 1px solid #30363d;
       border-radius: 12px;
       overflow: hidden;
@@ -32,6 +32,14 @@
       background-size: cover;
       background-position: center;
     }
+    .back-button {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-right: auto;
+    }
     .messages-container {
       flex: 1;
       overflow-y: auto;
@@ -45,9 +53,7 @@
       align-items: flex-end;
       gap: 0.5rem;
     }
-    .message.sent {
-      flex-direction: row-reverse;
-    }
+    .message.sent { flex-direction: row-reverse; }
     .message .pfp {
       width: 32px;
       height: 32px;
@@ -61,7 +67,6 @@
       padding: 0.75rem 1rem;
       border-radius: 1rem;
       font-size: 0.95rem;
-      position: relative;
       word-wrap: break-word;
     }
     .sent .message-bubble {
@@ -97,6 +102,7 @@
       color: #f0f6fc;
       background: #0d1117;
       outline: none;
+      max-height: 120px;
     }
     .chat-input button {
       background: linear-gradient(135deg, #8b5cf6, #7c3aed);
@@ -105,12 +111,16 @@
       padding: 0.75rem 1rem;
       border-radius: 50%;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   </style>
 </head>
 <body>
   <div class="chat-container">
     <div class="chat-header">
+      <button class="back-button" onclick="history.back()">← Back</button>
       <div class="profile" id="user-pfp"></div>
       <h3 id="user-name">C☍RS</h3>
     </div>
@@ -156,7 +166,7 @@
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${isSender ? 'sent' : 'received'}`;
       msgDiv.innerHTML = `
-        <div class="pfp" style="background-image: url('${msg.photoURL}')"></div>
+        <div class="pfp" style="background-image: url('${msg.photoURL || ''}')"></div>
         <div class="message-bubble">
           <div>${msg.text}</div>
           <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
@@ -191,7 +201,13 @@
           timestamp: serverTimestamp()
         });
         input.value = '';
+        input.style.height = 'auto';
       });
+    });
+
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     });
   </script>
 </body>
