@@ -75,23 +75,9 @@
       font-size: 0.9rem;
       color: #ccc;
     }
-
-    #back {
-      background: #444;
-      color: #fff;
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.6rem 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-    }
   </style>
 </head>
 <body>
-  <button id="back">Back</button>
   <button id="logout">Logout</button>
   <h1>C☍RS — All Users</h1>
   <div id="current-user"></div>
@@ -162,10 +148,6 @@
     document.getElementById("logout").onclick = async () => {
       await signOut(auth);
       window.location.href = "login.html";
-    };
-
-    document.getElementById("back").onclick = () => {
-      window.location.href = "index.html";
     };
   </script>
 </body>
