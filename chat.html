@@ -182,7 +182,6 @@
       if (!user || !targetUid) return location.href = "login.html";
       const currentUser = user;
 
-      // Fetch target user info for header
       try {
         const targetDoc = await getDoc(doc(db, "users", targetUid));
         if (targetDoc.exists()) {
@@ -198,7 +197,7 @@
       }
 
       const chatId = getChatId(currentUser.uid, targetUid);
-      const messagesRef = collection(db, `chats/${chatId}/messages`);
+      const messagesRef = collection(db, `dms/${chatId}/messages`);
       const q = query(messagesRef, orderBy("timestamp"));
 
       onSnapshot(q, (snapshot) => {
@@ -213,7 +212,7 @@
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
-        await addDoc(collection(db, `chats/${chatId}/messages`), {
+        await addDoc(collection(db, `dms/${chatId}/messages`), {
           text,
           uid: currentUser.uid,
           photoURL: currentUser.photoURL,
