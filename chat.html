@@ -6,114 +6,21 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body, html { height: 100%; overflow: hidden; background: #0d1117; color: #f0f6fc; font-family: 'Segoe UI', sans-serif; }
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      max-width: 800px;
-      margin: auto;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .chat-header {
-      padding: 1rem;
-      background: #161b22;
-      border-bottom: 1px solid #30363d;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .chat-header .profile {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-    }
-    .back-button {
-      background: none;
-      border: none;
-      color: #8b949e;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-right: auto;
-    }
-    .messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .message {
-      display: flex;
-      align-items: flex-end;
-      gap: 0.5rem;
-    }
+    .chat-container { display: flex; flex-direction: column; height: 100%; max-width: 800px; margin: auto; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; }
+    .chat-header { padding: 1rem; background: #161b22; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 1rem; }
+    .chat-header .profile { width: 36px; height: 36px; border-radius: 50%; background-size: cover; background-position: center; }
+    .back-button { background: none; border: none; color: #8b949e; font-size: 1rem; cursor: pointer; margin-right: auto; }
+    .messages-container { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+    .message { display: flex; align-items: flex-end; gap: 0.5rem; }
     .message.sent { flex-direction: row-reverse; }
-    .message .pfp {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-      flex-shrink: 0;
-    }
-    .message-bubble {
-      max-width: 75%;
-      padding: 0.75rem 1rem;
-      border-radius: 1rem;
-      font-size: 0.95rem;
-      word-wrap: break-word;
-    }
-    .sent .message-bubble {
-      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-      color: white;
-      border-bottom-right-radius: 0.25rem;
-    }
-    .received .message-bubble {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #f0f6fc;
-      border-bottom-left-radius: 0.25rem;
-    }
-    .message-time {
-      font-size: 0.7rem;
-      color: #8b949e;
-      margin-top: 0.25rem;
-    }
-    .chat-input {
-      display: flex;
-      padding: 1rem;
-      background: #161b22;
-      border-top: 1px solid #30363d;
-      gap: 0.5rem;
-    }
-    .chat-input textarea {
-      flex: 1;
-      border: none;
-      resize: none;
-      padding: 0.75rem 1rem;
-      border-radius: 1.25rem;
-      font-size: 1rem;
-      color: #f0f6fc;
-      background: #0d1117;
-      outline: none;
-      max-height: 120px;
-    }
-    .chat-input button {
-      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-      border: none;
-      color: white;
-      padding: 0.75rem 1rem;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .message .pfp { width: 32px; height: 32px; border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
+    .message-bubble { max-width: 75%; padding: 0.75rem 1rem; border-radius: 1rem; font-size: 0.95rem; word-wrap: break-word; }
+    .sent .message-bubble { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; border-bottom-right-radius: 0.25rem; }
+    .received .message-bubble { background: #21262d; border: 1px solid #30363d; color: #f0f6fc; border-bottom-left-radius: 0.25rem; }
+    .message-time { font-size: 0.7rem; color: #8b949e; margin-top: 0.25rem; }
+    .chat-input { display: flex; padding: 1rem; background: #161b22; border-top: 1px solid #30363d; gap: 0.5rem; }
+    .chat-input textarea { flex: 1; border: none; resize: none; padding: 0.75rem 1rem; border-radius: 1.25rem; font-size: 1rem; color: #f0f6fc; background: #0d1117; outline: none; max-height: 120px; }
+    .chat-input button { background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none; color: white; padding: 0.75rem 1rem; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
@@ -128,105 +35,5 @@
       <textarea id="msg-input" rows="1" placeholder="Say something..."></textarea>
       <button type="submit">➤</button>
     </form>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
-      authDomain: "core-d4ca4.firebaseapp.com",
-      databaseURL: "https://core-d4ca4-default-rtdb.firebaseio.com",
-      projectId: "core-d4ca4",
-      storageBucket: "core-d4ca4.appspot.com",
-      messagingSenderId: "509237418993",
-      appId: "1:509237418993:web:031b66f3b8967aaa714250",
-      measurementId: "G-35J082BKEV"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const auth = getAuth();
-    const db = getFirestore(app);
-
-    const params = new URLSearchParams(location.search);
-    const targetUid = params.get("uid");
-
-    const messagesDiv = document.getElementById("messages");
-    const form = document.getElementById("chat-form");
-    const input = document.getElementById("msg-input");
-    const targetName = document.getElementById("target-name");
-    const targetPfp = document.getElementById("target-pfp");
-
-    function getChatId(uid1, uid2) {
-      return [uid1, uid2].sort().join("_");
-    }
-
-    function renderMessage(msg, isSender) {
-      const msgDiv = document.createElement("div");
-      msgDiv.className = `message ${isSender ? "sent" : "received"}`;
-      msgDiv.innerHTML = `
-        <div class="pfp" style="background-image: url('${msg.photoURL || ""}')"></div>
-        <div class="message-bubble">
-          <div>${msg.text}</div>
-          <div class="message-time">${msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</div>
-        </div>`;
-      messagesDiv.appendChild(msgDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user || !targetUid) return location.href = "login.html";
-      const currentUser = user;
-
-      try {
-        const targetDoc = await getDoc(doc(db, "users", targetUid));
-        if (targetDoc.exists()) {
-          const data = targetDoc.data();
-          targetName.textContent = data.displayName || "User";
-          targetPfp.style.backgroundImage = `url('${data.photoURL || ""}')`;
-        } else {
-          targetName.textContent = "Unknown User";
-        }
-      } catch (e) {
-        targetName.textContent = "Error";
-        console.error("Failed to fetch target user:", e);
-      }
-
-      const chatId = getChatId(currentUser.uid, targetUid);
-      const messagesRef = collection(db, `dms/${chatId}/messages`);
-      const q = query(messagesRef, orderBy("timestamp"));
-
-      onSnapshot(q, (snapshot) => {
-        messagesDiv.innerHTML = "";
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          renderMessage(data, data.uid === currentUser.uid);
-        });
-      });
-
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const text = input.value.trim();
-        if (!text) return;
-        await addDoc(collection(db, `dms/${chatId}/messages`), {
-          text,
-          uid: currentUser.uid,
-          photoURL: currentUser.photoURL,
-          timestamp: serverTimestamp()
-        });
-        input.value = "";
-        input.style.height = "auto";
-      });
-    });
-
-    input.addEventListener("input", () => {
-      input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 120) + "px";
-    });
-  </script>
-</body>
+  </div>  <!-- Firebase + Google APIs -->  <script src="https://apis.google.com/js/api.js"></script>  <script type="module" src="chat-core-backup.js"></script></body>
 </html>
