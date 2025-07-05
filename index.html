@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>C☍RS — DMs</title>
+  <title>C☍RS — Users</title>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
@@ -21,14 +21,14 @@
       text-align: center;
     }
 
-    #dm-list {
+    #user-list {
       margin-top: 2rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
 
-    .dm-item {
+    .user-item {
       background: #1a1a1a;
       border-radius: 0.5rem;
       padding: 1rem;
@@ -36,11 +36,11 @@
       transition: background 0.2s ease;
     }
 
-    .dm-item:hover {
+    .user-item:hover {
       background: #292929;
     }
 
-    .dm-meta {
+    .user-meta {
       font-size: 0.9rem;
       color: #aaa;
     }
@@ -58,7 +58,7 @@
       right: 1rem;
     }
 
-    #user-info {
+    #current-user {
       text-align: center;
       margin-top: 1rem;
       font-size: 0.9rem;
@@ -68,16 +68,15 @@
 </head>
 <body>
   <button id="logout">Logout</button>
-  <h1>C☍RS — Direct Messages</h1>
-  <div id="user-info"></div>
-  <div id="dm-list"></div>
+  <h1>C☍RS — All Users</h1>
+  <div id="current-user"></div>
+  <div id="user-list"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, query, where, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
       authDomain: "core-d4ca4.firebaseapp.com",
@@ -88,8 +87,8 @@
     const auth = getAuth();
     const db = getFirestore(app);
 
-    const dmListEl = document.getElementById("dm-list");
-    const userInfoEl = document.getElementById("user-info");
+    const userListEl = document.getElementById("user-list");
+    const currentUserEl = document.getElementById("current-user");
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -97,33 +96,32 @@
         return;
       }
 
-      userInfoEl.innerText = `Signed in as: ${user.displayName}`;
+      currentUserEl.innerText = `Signed in as: ${user.displayName}`;
 
-      const dmsRef = collection(db, "dms");
-      const q = query(
-        dmsRef,
-        where("members", "array-contains", user.uid),
-        orderBy("updatedAt", "desc")
-      );
+      const usersRef = collection(db, "users");
+      const q = query(usersRef);
 
       onSnapshot(q, (snapshot) => {
-        dmListEl.innerHTML = "";
+        userListEl.innerHTML = "";
+
         snapshot.forEach((doc) => {
-          const dm = doc.data();
+          const u = doc.data();
+          if (u.uid === user.uid) return; // skip current user
+
           const div = document.createElement("div");
-          div.classList.add("dm-item");
+          div.classList.add("user-item");
           div.innerHTML = `
-            <strong>DM: ${doc.id}</strong><br />
-            <div class="dm-meta">Last message: ${dm.lastMessage || "—"}</div>
+            <strong>${u.username}</strong><br />
+            <div class="user-meta">${u.email}</div>
           `;
           div.onclick = () => {
-            window.location.href = `chat.html?dmId=${doc.id}`;
+            window.location.href = `chat.html?uid=${u.uid}`;
           };
-          dmListEl.appendChild(div);
+          userListEl.appendChild(div);
         });
 
         if (snapshot.empty) {
-          dmListEl.innerHTML = `<p style="text-align:center;color:#666;">No DMs yet.</p>`;
+          userListEl.innerHTML = `<p style="text-align:center;color:#666;">No users found.</p>`;
         }
       });
     });
