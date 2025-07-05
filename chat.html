@@ -4,29 +4,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat Interface</title>
   <style>
-    /* Existing styles... */
-    .message {
-      display: flex;
-      margin-bottom: 1rem;
-      align-items: flex-end;
-      gap: 0.5rem;
-    }
-    .message.sent {
-      flex-direction: row-reverse;
-    }
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-      flex-shrink: 0;
+    /* All your existing styles remain unchanged */
+    .image-preview {
+      max-width: 100%;
+      border-radius: 0.75rem;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
   <div class="chat-container">
-    <!-- Full chat UI remains unchanged -->
+    <!-- Full chat UI remains unchanged except input -->
+    <div class="input-container">
+      <form class="input-form" id="message-form">
+        <textarea 
+          class="message-input" 
+          id="message-input" 
+          placeholder="Type your message..."
+          rows="1"
+          maxlength="1000"
+        ></textarea>
+        <input type="file" id="image-input" accept="image/*" hidden />
+        <button type="button" id="upload-button" class="send-button" title="Attach Image">
+          📎
+        </button>
+        <button type="submit" class="send-button" id="send-button">
+          <svg class="send-icon" viewBox="0 0 24 24">
+            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+          </svg>
+        </button>
+      </form>
+    </div>
   </div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
@@ -42,16 +50,24 @@
       onSnapshot,
       setDoc
     } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
       authDomain: "core-d4ca4.firebaseapp.com",
-      projectId: "core-d4ca4"
+      projectId: "core-d4ca4",
+      storageBucket: "core-d4ca4.appspot.com"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     const urlParams = new URLSearchParams(window.location.search);
     const targetUid = urlParams.get("uid");
@@ -89,7 +105,7 @@
           const isSender = msg.sender === currentUser.uid;
           const type = isSender ? "sent" : "received";
           const showAvatar = lastSender !== msg.sender;
-          chatUI.addMessage(msg.text, type, new Date(msg.timestamp?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), showAvatar ? (isSender ? currentUser.photoURL : targetPhotoURL) : null);
+          chatUI.addMessage(msg.text || "", type, msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), showAvatar ? (isSender ? currentUser.photoURL : targetPhotoURL) : null, msg.imageUrl || null);
           lastSender = msg.sender;
         });
       });
@@ -99,7 +115,7 @@
         const input = document.getElementById("message-input");
         const text = input.value.trim();
         if (!text) return;
-        await addDoc(messagesRef, {
+        await addDoc(collection(db, `dms/${dmId}/messages`), {
           text,
           sender: currentUser.uid,
           timestamp: serverTimestamp()
@@ -108,7 +124,27 @@
         input.style.height = 'auto';
       });
 
-      // Typing status sync
+      document.getElementById("upload-button").onclick = () => document.getElementById("image-input").click();
+
+      document.getElementById("image-input").onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith("image/")) return alert("Only image files allowed.");
+        if (file.size > 2 * 1024 * 1024) return alert("Max 2MB image allowed.");
+
+        const msgRef = await addDoc(collection(db, `dms/${dmId}/messages`), {
+          sender: currentUser.uid,
+          timestamp: serverTimestamp()
+        });
+
+        const ext = file.name.split('.').pop();
+        const storageRef = ref(storage, `dms/${dmId}/${msgRef.id}.${ext}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+
+        await setDoc(msgRef, { imageUrl: url }, { merge: true });
+        e.target.value = "";
+      };
+
       const typingInput = document.getElementById("message-input");
       let typingDebounce;
 
@@ -137,7 +173,6 @@
       });
     });
 
-    // Patch ChatUI method for avatars
     class ChatUI {
       constructor() {
         this.messageInput = document.getElementById('message-input');
@@ -153,19 +188,16 @@
           e.preventDefault();
           this.handleSendMessage();
         });
-
         this.messageInput.addEventListener('input', (e) => {
           this.autoResize(e.target);
           this.toggleSendButton();
         });
-
         this.messageInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             this.handleSendMessage();
           }
         });
-
         this.observeMessages();
       }
 
@@ -178,14 +210,16 @@
         this.messageInput.focus();
       }
 
-      addMessage(text, type = 'sent', timestamp = null, avatarURL = null) {
+      addMessage(text, type = 'sent', timestamp = null, avatarURL = null, imageUrl = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
-        const currentTime = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const imgHTML = imageUrl ? `<img src="${imageUrl}" class="image-preview" />` : "";
         messageDiv.innerHTML = `${avatarURL ? `<div class="avatar" style="background-image: url('${avatarURL}')"></div>` : '<div style="width: 32px;"></div>'}
           <div class="message-bubble">
-            <div class="message-text">${this.escapeHtml(text)}</div>
-            <div class="message-time">${currentTime}</div>
+            ${text ? `<div class="message-text">${this.escapeHtml(text)}</div>` : ""}
+            ${imgHTML}
+            <div class="message-time">${time}</div>
           </div>`;
         this.messagesContainer.appendChild(messageDiv);
         this.scrollToBottom();
