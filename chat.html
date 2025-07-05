@@ -132,7 +132,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
@@ -150,12 +150,11 @@
     const auth = getAuth();
     const db = getFirestore(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetUID = urlParams.get('uid');
-
     const messagesDiv = document.getElementById('messages');
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
+    const params = new URLSearchParams(location.search);
+    const targetUid = params.get('uid');
 
     let currentUser = null;
 
@@ -177,15 +176,15 @@
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user) return location.href = 'login.html';
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || !targetUid) return location.href = 'login.html';
       currentUser = user;
       document.getElementById('user-name').textContent = user.displayName;
       document.getElementById('user-pfp').style.backgroundImage = `url('${user.photoURL}')`;
 
-      const chatId = getChatId(currentUser.uid, targetUID);
-      const chatRef = collection(db, `chats/${chatId}/messages`);
-      const q = query(chatRef, orderBy('timestamp'));
+      const chatId = getChatId(currentUser.uid, targetUid);
+      const messagesRef = collection(db, `chats/${chatId}/messages`);
+      const q = query(messagesRef, orderBy('timestamp'));
 
       onSnapshot(q, (snapshot) => {
         messagesDiv.innerHTML = '';
@@ -199,17 +198,12 @@
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
-
-        const chatId = getChatId(currentUser.uid, targetUID);
-        const chatRef = collection(db, `chats/${chatId}/messages`);
-
-        await addDoc(chatRef, {
+        await addDoc(messagesRef, {
           text,
           uid: currentUser.uid,
           photoURL: currentUser.photoURL,
           timestamp: serverTimestamp()
         });
-
         input.value = '';
         input.style.height = 'auto';
       });
