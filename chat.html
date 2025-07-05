@@ -132,7 +132,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
@@ -153,14 +153,15 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetUID = urlParams.get('uid');
 
-    const messagesRef = collection(db, 'global-messages');
-    const q = query(messagesRef, orderBy('timestamp'));
-
     const messagesDiv = document.getElementById('messages');
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
 
     let currentUser = null;
+
+    function getChatId(uid1, uid2) {
+      return [uid1, uid2].sort().join('_');
+    }
 
     function renderMessage(msg, isSender) {
       const msgDiv = document.createElement('div');
@@ -177,21 +178,20 @@
     }
 
     onAuthStateChanged(auth, (user) => {
-      if (!user || !targetUID) return location.href = 'login.html';
+      if (!user) return location.href = 'login.html';
       currentUser = user;
       document.getElementById('user-name').textContent = user.displayName;
       document.getElementById('user-pfp').style.backgroundImage = `url('${user.photoURL}')`;
+
+      const chatId = getChatId(currentUser.uid, targetUID);
+      const chatRef = collection(db, `chats/${chatId}/messages`);
+      const q = query(chatRef, orderBy('timestamp'));
 
       onSnapshot(q, (snapshot) => {
         messagesDiv.innerHTML = '';
         snapshot.forEach((doc) => {
           const data = doc.data();
-          const isBetweenUsers =
-            (data.uid === currentUser.uid && data.to === targetUID) ||
-            (data.uid === targetUID && data.to === currentUser.uid);
-          if (isBetweenUsers) {
-            renderMessage(data, data.uid === currentUser.uid);
-          }
+          renderMessage(data, data.uid === currentUser.uid);
         });
       });
 
@@ -199,13 +199,17 @@
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
-        await addDoc(messagesRef, {
+
+        const chatId = getChatId(currentUser.uid, targetUID);
+        const chatRef = collection(db, `chats/${chatId}/messages`);
+
+        await addDoc(chatRef, {
           text,
           uid: currentUser.uid,
-          to: targetUID,
           photoURL: currentUser.photoURL,
           timestamp: serverTimestamp()
         });
+
         input.value = '';
         input.style.height = 'auto';
       });
