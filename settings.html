@@ -3,141 +3,170 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Settings</title>
-  <link rel="stylesheet" href="theme.css">
+  <title>C☍RS — Users</title>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
   <style>
     body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-      color: var(--text);
+      background: #0f0f0f;
+      color: #ffffff;
       font-family: 'Inter', sans-serif;
-      transition: background 0.3s, color 0.3s;
+      margin: 0;
+      padding: 1rem;
     }
-    .settings-box {
-      background: var(--box-bg);
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 2px 16px #0002;
-      min-width: 320px;
+
+    h1 {
+      color: #a259ff;
       text-align: center;
     }
-    .settings-box h2 {
-      margin-bottom: 1.5rem;
-      color: var(--accent);
+
+    #user-list {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
-    .settings-row {
-      margin-bottom: 1.2rem;
-      text-align: left;
-    }
-    .settings-label {
-      font-weight: bold;
-      margin-bottom: 0.3rem;
-      display: block;
-    }
-    .settings-value {
-      background: var(--input-bg);
-      color: var(--text);
-      padding: 0.6rem 1rem;
+
+    .user-item {
+      background: #1a1a1a;
       border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
-      width: 100%;
-      box-sizing: border-box;
-      border: none;
+      padding: 0.8rem 1rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
-    .theme-select {
-      width: 100%;
-      padding: 0.6rem 1rem;
-      border-radius: 0.5rem;
-      border: none;
-      background: var(--input-bg);
-      color: var(--text);
-      font-size: 1rem;
+
+    .user-item:hover {
+      background: #292929;
     }
-    .signout-btn {
-      margin-top: 1.5rem;
-      background: var(--accent);
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #444;
+    }
+
+    .user-name {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    #logout {
+      background: #a259ff;
       color: #fff;
       border: none;
-      padding: 0.8rem 1.2rem;
-      font-weight: bold;
       border-radius: 0.5rem;
+      padding: 0.6rem 1rem;
+      font-weight: bold;
       cursor: pointer;
-      width: 100%;
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
     }
-    .signout-btn:hover {
-      opacity: 0.85;
+
+    #current-user {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    #back {
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.6rem 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="settings-box">
-    <h2>Settings</h2>
-    <div class="settings-row">
-      <span class="settings-label">Username</span>
-      <input id="username" class="settings-value" type="text" readonly />
-    </div>
-    <div class="settings-row">
-      <span class="settings-label">Email</span>
-      <input id="email" class="settings-value" type="text" readonly />
-    </div>
-    <div class="settings-row">
-      <span class="settings-label">Theme</span>
-      <select id="theme-select" class="theme-select">
-        <option value="dark">Dark - Default</option>
-        <option value="light">Light</option>
-        <option value="purple">Purple Mode - Derived from Chatz (older project of core used to be default)</option>
-      </select>
-    </div>
-    <button class="signout-btn" id="signout-btn">Sign Out</button>
-  </div>
+  <button id="back">Back</button>
+  <button id="logout">Logout</button>
+  <h1>C☍RS — All Users</h1>
+  <div id="current-user"></div>
+  <div id="user-list"></div>
+
   <script type="module">
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
+    import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
       authDomain: "core-d4ca4.firebaseapp.com",
       projectId: "core-d4ca4"
     };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
     const db = getFirestore(app);
-    // Only allow access if signed in
-    onAuthStateChanged(auth, async (user) => {
+
+    const userListEl = document.getElementById("user-list");
+    const currentUserEl = document.getElementById("current-user");
+
+    onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "login.html";
         return;
       }
-      document.getElementById('username').value = user.displayName || user.email || 'Unknown';
-      document.getElementById('email').value = user.email || '';
-      // Optionally fetch from Firestore for more info
-      try {
-        const userRef = doc(db, "users", user.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          document.getElementById('username').value = data.username || user.displayName || user.email || 'Unknown';
+
+      currentUserEl.innerText = `Signed in as: ${user.displayName}`;
+
+      const usersRef = collection(db, "users");
+      const q = query(usersRef);
+
+      onSnapshot(q, (snapshot) => {
+        userListEl.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+          const u = doc.data();
+          if (u.uid === user.uid) return;
+
+          const div = document.createElement("div");
+          div.classList.add("user-item");
+          div.onclick = () => {
+            window.location.href = `swettings.html?uid=${u.uid}`;
+          };
+
+          const avatar = document.createElement("img");
+          avatar.className = "user-avatar";
+          avatar.src = u.photoURL || "https://via.placeholder.com/48";
+          avatar.alt = u.username;
+
+          const name = document.createElement("div");
+          name.className = "user-name";
+          name.textContent = u.username || "Unnamed";
+
+          div.appendChild(avatar);
+          div.appendChild(name);
+          userListEl.appendChild(div);
+        });
+
+        if (snapshot.empty) {
+          userListEl.innerHTML = `<p style="text-align:center;color:#666;">No users found.</p>`;
         }
-      } catch {}
+      });
     });
-    // Theme logic
-    const themeSelect = document.getElementById('theme-select');
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-    }
-    themeSelect.value = localStorage.getItem('theme') || 'dark';
-    applyTheme(themeSelect.value);
-    themeSelect.onchange = (e) => applyTheme(e.target.value);
-    // Sign out
-    document.getElementById('signout-btn').onclick = async () => {
+
+    document.getElementById("logout").onclick = async () => {
       await signOut(auth);
       window.location.href = "login.html";
+    };
+
+    document.getElementById("back").onclick = () => {
+      window.location.href = "index.html";
     };
   </script>
 </body>
 </html>
-
