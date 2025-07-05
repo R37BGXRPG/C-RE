@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -129,9 +128,7 @@
       <textarea id="msg-input" rows="1" placeholder="Say something..."></textarea>
       <button type="submit">➤</button>
     </form>
-  </div>
-
-  <script type="module">
+  </div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js";
@@ -152,6 +149,9 @@
     const analytics = getAnalytics(app);
     const auth = getAuth();
     const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUid = urlParams.get('uid');
 
     const messagesRef = collection(db, 'global-messages');
     const q = query(messagesRef, orderBy('timestamp'));
@@ -186,7 +186,12 @@
         messagesDiv.innerHTML = '';
         snapshot.forEach((doc) => {
           const data = doc.data();
-          renderMessage(data, data.uid === user.uid);
+          if (
+            (data.sender === currentUser.uid && data.receiver === targetUid) ||
+            (data.sender === targetUid && data.receiver === currentUser.uid)
+          ) {
+            renderMessage(data, data.sender === currentUser.uid);
+          }
         });
       });
 
@@ -196,7 +201,8 @@
         if (!text) return;
         await addDoc(messagesRef, {
           text,
-          uid: currentUser.uid,
+          sender: currentUser.uid,
+          receiver: targetUid,
           photoURL: currentUser.photoURL,
           timestamp: serverTimestamp()
         });
@@ -209,6 +215,5 @@
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     });
-  </script>
-</body>
+  </script></body>
 </html>
