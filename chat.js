@@ -41,3 +41,4 @@ export function listenForMessages(callback) {
 export function getCurrentUser() {
   return currentUser;
 }
+
