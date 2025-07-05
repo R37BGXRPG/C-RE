@@ -10,7 +10,6 @@
       --bg: #0f0f0f;
       --fg: #ffffff;
       --accent: #a259ff;
-      --input-bg: #1f1f1f;
     }
 
     * {
@@ -41,7 +40,7 @@
 
     .login-box h1 {
       font-size: 2rem;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
       color: var(--accent);
     }
 
@@ -54,7 +53,7 @@
       font-weight: bold;
       cursor: pointer;
       width: 100%;
-      margin-top: 1rem;
+      transition: background 0.2s ease;
     }
 
     .google-btn:hover {
@@ -62,8 +61,8 @@
     }
 
     .footer {
-      margin-top: 1rem;
-      font-size: 0.9rem;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
       color: #777;
     }
   </style>
@@ -72,7 +71,7 @@
   <div class="login-box">
     <h1>C☍RS Login</h1>
     <button class="google-btn" onclick="loginWithGoogle()">Sign in with Google</button>
-    <div class="footer">Powered by the Dem Cult 🔮</div>
+    <div class="footer">© C☍RS & The Dem Cult 🔮</div>
   </div>
 
   <!-- Firebase SDKs -->
@@ -82,7 +81,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Firebase config — YOUR actual config
+    // Firebase config (yours)
     const firebaseConfig = {
       apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
       authDomain: "core-d4ca4.firebaseapp.com",
@@ -100,16 +99,15 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
+    // Google login
     async function loginWithGoogle() {
       try {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
-
-        // Check if user already exists in Firestore
         const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+        const snap = await getDoc(userRef);
 
-        if (!userSnap.exists()) {
+        if (!snap.exists()) {
           await setDoc(userRef, {
             uid: user.uid,
             username: user.displayName,
@@ -120,8 +118,9 @@
         }
 
         window.location.href = "index.html";
-      } catch (err) {
-        alert("Google sign-in error: " + err.message);
+      } catch (error) {
+        alert("Login failed: " + error.message);
+        console.error(error);
       }
     }
 
