@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>C☍RS — Login</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --fg: #ffffff;
+      --accent: #a259ff;
+      --input-bg: #1f1f1f;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Inter", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .login-box {
+      background-color: #151515;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 0 30px rgba(162, 89, 255, 0.2);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: var(--input-bg);
+      color: var(--fg);
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.8rem 1.2rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 0.5rem;
+      color: var(--fg);
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #8e3eff;
+    }
+
+    .footer {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>C☍RS Login</h1>
+    <input type="text" id="username" placeholder="Enter your username" />
+    <button onclick="login()">Enter</button>
+    <div class="footer">Powered by the Dem Cult 🔮</div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Firebase config — from you
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSCmprAHDV1MQcdTa_7YaS9cu-CXrsqJ4",
+      authDomain: "core-d4ca4.firebaseapp.com",
+      databaseURL: "https://core-d4ca4-default-rtdb.firebaseio.com",
+      projectId: "core-d4ca4",
+      storageBucket: "core-d4ca4.firebasestorage.app",
+      messagingSenderId: "509237418993",
+      appId: "1:509237418993:web:031b66f3b8967aaa714250",
+      measurementId: "G-35J082BKEV"
+    };
+
+    // Init Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth();
+    const db = getFirestore(app);
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      if (!username) {
+        alert("Enter a username.");
+        return;
+      }
+
+      try {
+        const { user } = await signInAnonymously(auth);
+        await setDoc(doc(db, "users", user.uid), {
+          username: username,
+          uid: user.uid,
+          createdAt: new Date().toISOString()
+        });
+        window.location.href = "index.html";
+      } catch (err) {
+        alert("Login error: " + err.message);
+      }
+    }
+
+    // Auto redirect if already logged in
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "index.html";
+      }
+    });
+  </script>
+</body>
+</html>
