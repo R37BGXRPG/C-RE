@@ -78,6 +78,7 @@
   </style>
 </head>
 <body>
+  <button class="back-button" onclick="window.location.href='index.html'" style="margin-bottom:1rem;background:none;border:none;color:var(--accent);font-size:1rem;cursor:pointer;">← Back</button>
   <div class="settings-container">
     <div class="settings-header">
       <img id="user-avatar" class="user-avatar" src="https://via.placeholder.com/80" alt="User Avatar">
@@ -132,7 +133,7 @@
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('theme', theme);
     }
-    // Load theme on page load
+    // Always apply theme from localStorage on load
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
     themeSelect.value = savedTheme;
