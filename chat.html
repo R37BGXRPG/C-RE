@@ -4,13 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>C☍RS Chat</title>
+  <link rel="stylesheet" href="theme.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { height: 100%; overflow: hidden; background: #0d1117; color: #f0f6fc; font-family: 'Segoe UI', sans-serif; }
+    body, html { height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
     .chat-container {
       display: flex; flex-direction: column; height: 100%;
       max-width: 800px; margin: auto; border: 1px solid #30363d;
       border-radius: 12px; overflow: hidden;
+      background: var(--box-bg);
     }
     .chat-header {
       padding: 1rem; background: #161b22;
@@ -46,7 +48,7 @@
     }
     .received .message-bubble {
       background: #21262d; border: 1px solid #30363d;
-      color: #f0f6fc; border-bottom-left-radius: 0.25rem;
+      color: var(--text); border-bottom-left-radius: 0.25rem;
     }
     .message-time {
       font-size: 0.7rem; color: #8b949e; margin-top: 0.25rem;
@@ -58,7 +60,7 @@
     .chat-input textarea {
       flex: 1; border: none; resize: none;
       padding: 0.75rem 1rem; border-radius: 1.25rem;
-      font-size: 1rem; color: #f0f6fc; background: #0d1117;
+      font-size: 1rem; color: var(--text); background: var(--input-bg);
       outline: none; max-height: 120px;
     }
     .chat-input button {
@@ -66,6 +68,24 @@
       border: none; color: white;
       padding: 0.75rem 1rem; border-radius: 50%;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .theme-select {
+      width: 160px;
+      padding: 0.4rem;
+      border-radius: 0.5rem;
+      border: 1px solid #333;
+      background: var(--input-bg);
+      color: var(--text);
+      margin: 1rem auto 0 auto;
+      font-size: 1rem;
+      display: block;
+    }
+    label[for="theme"] {
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      text-align: center;
     }
   </style>
   <script src="https://apis.google.com/js/api.js"></script>
@@ -83,7 +103,12 @@
       <button type="submit">➤</button>
     </form>
   </div>
-
+  <label for="theme">Theme</label>
+  <select id="theme" class="theme-select">
+    <option value="dark">Dark</option>
+    <option value="light">Light</option>
+    <option value="purple">Purple</option>
+  </select>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js";
@@ -180,9 +205,7 @@
     onAuthStateChanged(auth, async (user) => {
       if (!user || !targetUid) return location.href = "login.html";
       const currentUser = user;
-
       await initGoogleDriveAuth();
-
       // get header info
       try {
         const targetDoc = await getDoc(doc(db, "users", targetUid));
@@ -194,13 +217,10 @@
       } catch (err) {
         console.error("Header info error", err);
       }
-
       const chatId = getChatId(currentUser.uid, targetUid);
       const messagesRef = collection(db, `dms/${chatId}/messages`);
       const q = query(messagesRef, orderBy("timestamp"));
-
       let localChat = [];
-
       onSnapshot(q, (snap) => {
         messagesDiv.innerHTML = "";
         localChat = [];
@@ -209,11 +229,9 @@
           localChat.push(data);
           renderMessage(data, data.uid === currentUser.uid);
         });
-
         // 🔁 Auto save backup
         backupChatToDrive(localChat);
       });
-
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = input.value.trim();
@@ -228,11 +246,21 @@
         input.style.height = "auto";
       });
     });
-
     input.addEventListener("input", () => {
       input.style.height = "auto";
       input.style.height = Math.min(input.scrollHeight, 120) + "px";
     });
+    // Theme logic
+    const themeSelect = document.getElementById('theme');
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
+    // Load theme on page load
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    themeSelect.value = savedTheme;
+    themeSelect.addEventListener('change', e => setTheme(e.target.value));
   </script>
 </body>
 </html>
