@@ -202,9 +202,16 @@
       }
     }
 
+    async function waitForGapi() {
+      while (typeof window.gapi === "undefined" || !window.gapi.load) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+    }
+
     onAuthStateChanged(auth, async (user) => {
       if (!user || !targetUid) return location.href = "login.html";
       const currentUser = user;
+      await waitForGapi();
       await initGoogleDriveAuth();
       // get header info
       try {
